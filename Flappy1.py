@@ -13,10 +13,8 @@ screen_height = 800
 
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Flappy Bird")
-# Define fonts
+# Define fonts and font colors
 font = pygame.font.SysFont('Bauhaus 93', 60)
-
-# Define color
 white = (255, 255, 255)
 
 # Game variables
