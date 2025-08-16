@@ -2,11 +2,11 @@ import pygame
 from pygame.locals import *
 import random
 
+pygame.mixer.init(44100, -16, 1, 512)
 pygame.init()
 
 clock = pygame.time.Clock() 
 fps = 40
-
 
 screen_width = 864
 screen_height = 800
@@ -30,12 +30,19 @@ pass_pipe = False
 high_score = 0
 grace_duration = 800  # milliseconds
 grace_start = None
+show_start_screen = True
 
 # Load images
 bg =  pygame.image.load('images/bg.png')
 ground = pygame.image.load('images/ground.png')
 restart_img = pygame.image.load('images/restart.png')
 
+
+# Load Sound Files
+score_sound = pygame.mixer.Sound('Sounds/sfx_point.mp3')
+collide_sound = pygame.mixer.Sound('Sounds/sfx_die.mp3')
+game_music = pygame.mixer.music.load('Sounds/3-main-theme-101soundboards.mp3')
+pygame.mixer.music.set_volume(0.7)
 
 def draw_text(text, font, text_color, x, y):
     img = font.render(text, True, text_color)
@@ -86,17 +93,17 @@ class Bird(pygame.sprite.Sprite):
         # Jump
             if pygame.mouse.get_pressed()[0] == 0:
                 self.clicked = False
-
             # Handle animation
             self.counter += 1
             flap_cooldown = 5
             if self.counter > flap_cooldown:
                 self.counter = 0
                 self.index += 1
-            if self.index >= len(self.images):
-                self.index = 0
-            # Update the image
-            self.image = self.images[self.index] 
+                if self.index >= len(self.images):
+                    self.index = 0
+                # Update the image
+                self.image = self.images[self.index]
+
 
             # rotate the bird
             self.image = pygame.transform.rotate(self.images[self.index], self.vel * -2)  
@@ -105,7 +112,8 @@ class Bird(pygame.sprite.Sprite):
     # Jump method for mouse and keyboard input
     def jump(self):
         self.vel = -10
-        self.clicked = True 
+        self.clicked = True
+
 
     def reset(self, x, y):
         self.rect.center = [x, y]
@@ -160,11 +168,10 @@ flappy = Bird(100, screen_height // 2)
 bird_group.add(flappy)
 
 #  Create restart button instance
-button = Button(screen_width // 2 - 50, screen_height // 2 -100, restart_img) 
+button = Button(screen_width // 2 - 50, screen_height // 2 -100, restart_img)
 
 run  = True
 while run:
-
     clock.tick(fps)
     # Draw background
     screen.blit(bg, (0,0))
@@ -187,6 +194,7 @@ while run:
         if pass_pipe == True:
             if bird_group.sprites()[0].rect.left > pipe_group.sprites()[0].rect.right:
                 score += 1
+                score_sound.play()
                 # Update high score if current score is higher
                 if score > high_score:
                     high_score = score
@@ -196,12 +204,16 @@ while run:
     draw_text(f'HI: {high_score}', font, white, screen_width - 180, 20)
     #  Look for collisions
     if pygame.sprite.groupcollide(bird_group, pipe_group, False, False) or flappy.rect.top < 0:
-        game_over = True
+        if not game_over:
+            collide_sound.play()
+            game_over = True
 
-    # Check if bird ha hit the ground
+    # Check if bird has hit the ground
     if flappy.rect.bottom >= screen_height - ground.get_height():
-        game_over = True
-        flying = False
+        if not game_over:
+            collide_sound.play()
+            game_over = True
+            flying = False
          
     if game_over == False and flying == True:
 
@@ -235,17 +247,20 @@ while run:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if not flying and not game_over:
                 flying = True
+                pygame.mixer.music.play(loops =- 1)
             elif flying and not game_over:
                 flappy.jump()
         # Keyboard Input
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
             if not flying and not game_over:
                 flying = True
+                pygame.mixer.music.play(loops =- 1)
             elif flying and not game_over:
                 flappy.jump()
             elif game_over:
                 game_over = False
                 score = reset_game()
+        # Grace time while start
         if (event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)):
             if not flying and not game_over:
                 flying = True
