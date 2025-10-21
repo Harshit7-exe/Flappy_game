@@ -31,6 +31,8 @@ high_score = 0
 grace_duration = 800  # milliseconds
 grace_start = None
 show_start_screen = True
+speed_boost = 1.0 + (score // 5) * 0.5
+manual_boost = 1.0
 
 # Load images
 bg =  pygame.image.load('images/bg.png')
@@ -42,20 +44,22 @@ restart_img = pygame.image.load('images/restart.png')
 score_sound = pygame.mixer.Sound('Sounds/sfx_point.mp3')
 collide_sound = pygame.mixer.Sound('Sounds/sfx_die.mp3')
 game_music = pygame.mixer.music.load('Sounds/3-main-theme-101soundboards.mp3')
-pygame.mixer.music.set_volume(0.7)
+pygame.mixer.music.set_volume(1.0)
 
 def draw_text(text, font, text_color, x, y):
     img = font.render(text, True, text_color)
     screen.blit(img, (x, y))
 
 def reset_game():
-    global score, grace_start
+    global score, grace_start, speed_boost, manual_boost
     pipe_group.empty()
     flappy.rect.x = 100
     flappy.rect.y = screen_height // 2
     flappy.reset(100, screen_height // 2)
     score = 0 
     grace_start = None
+    speed_boost = 1.0
+    manual_boost = 1.0
     return score
    
 
@@ -83,7 +87,7 @@ class Bird(pygame.sprite.Sprite):
             if grace_start is not None and current_time - grace_start < grace_duration:
                 self.rect.x += 2  # horizontal glide
             else:
-                self.vel += 0.5
+                self.vel += min(0.5 * speed_boost, 1.5)
                 if self.vel > 10:
                     self.vel = 10
                 if self.rect.bottom < screen_height - ground.get_height(): 
@@ -111,7 +115,7 @@ class Bird(pygame.sprite.Sprite):
             self.image = pygame.transform.rotate(self.images[self.index], -90)
     # Jump method for mouse and keyboard input
     def jump(self):
-        self.vel = -10
+        self.vel = max(-10, -5 * speed_boost)
         self.clicked = True
 
 
@@ -191,15 +195,16 @@ while run:
             and bird_group.sprites()[0].rect.right < pipe_group.sprites()[0].rect.right\
             and pass_pipe == False:
             pass_pipe = True
+
         if pass_pipe == True:
             if bird_group.sprites()[0].rect.left > pipe_group.sprites()[0].rect.right:
                 score += 1
                 score_sound.play()
-                # Update high score if current score is higher
+                # Update high score if the current score is higher
                 if score > high_score:
                     high_score = score
                 pass_pipe = False
-   
+
     draw_text(f'SCORE: {score}', font, white, 20, 20)    
     draw_text(f'HI: {high_score}', font, white, screen_width - 180, 20)
     #  Look for collisions
@@ -240,6 +245,15 @@ while run:
            score = reset_game()
 
     #  Event handling
+    if not game_over:
+        auto_boost = 1.0 + (score // 5) * 0.5
+        speed_boost = manual_boost * auto_boost
+        if not game_over:
+            auto_boost = 1.0 + (score // 5) * 0.5
+            speed_boost = manual_boost * auto_boost
+        else:
+            speed_boost = 1.0
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
@@ -260,6 +274,13 @@ while run:
             elif game_over:
                 game_over = False
                 score = reset_game()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_s:
+            if manual_boost == 1.0:
+                manual_boost = 1.8
+            else:
+                manual_boost = 1.0
+
+
         # Grace time while start
         if (event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)):
             if not flying and not game_over:
