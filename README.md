@@ -20,6 +20,7 @@ and serves as a solid foundation for building more complex 2D games.
 - Pipe generation with increasing difficulty  
 - Score tracking with best/high score system   
 - Simple yet polished 2D graphics using Pygame assets  
-
+- Custom speed control
+- speed increase after every 5 points scored.
 ---
 
